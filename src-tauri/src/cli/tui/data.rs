@@ -7,6 +7,7 @@ use serde_json::Value;
 use crate::app_config::{AppType, CommonConfigSnippets, McpServer};
 use crate::commands::workspace::{self, DailyMemoryFileInfo, ALLOWED_FILES};
 use crate::error::AppError;
+use crate::hermes_config::{read_memory, read_memory_limits, MemoryKind};
 use crate::openclaw_config::{
     OpenClawAgentsDefaults, OpenClawEnvConfig, OpenClawHealthWarning, OpenClawToolsConfig,
 };
@@ -214,6 +215,30 @@ pub struct ConfigSnapshot {
     pub openclaw_agents_defaults: Option<OpenClawAgentsDefaults>,
     pub openclaw_warnings: Option<Vec<OpenClawHealthWarning>>,
     pub openclaw_workspace: OpenClawWorkspaceSnapshot,
+    pub hermes_memory: HermesMemorySnapshot,
+}
+
+#[derive(Debug, Clone)]
+pub struct HermesMemorySnapshot {
+    pub memory_content: String,
+    pub user_content: String,
+    pub memory_limit: usize,
+    pub user_limit: usize,
+    pub memory_enabled: bool,
+    pub user_enabled: bool,
+}
+
+impl Default for HermesMemorySnapshot {
+    fn default() -> Self {
+        Self {
+            memory_content: String::new(),
+            user_content: String::new(),
+            memory_limit: 2200,
+            user_limit: 1375,
+            memory_enabled: true,
+            user_enabled: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -859,6 +884,7 @@ fn load_config_snapshot(state: &AppState, app_type: &AppType) -> Result<ConfigSn
     let settings = crate::settings::get_settings();
     let openclaw_snapshot = load_openclaw_config_snapshot(app_type)?;
     let openclaw_workspace = load_openclaw_workspace_snapshot(app_type)?;
+    let hermes_memory = load_hermes_memory_snapshot(app_type)?;
 
     Ok(ConfigSnapshot {
         config_path,
@@ -884,6 +910,23 @@ fn load_config_snapshot(state: &AppState, app_type: &AppType) -> Result<ConfigSn
             .and_then(|snapshot| snapshot.agents_defaults.clone()),
         openclaw_warnings: openclaw_snapshot.map(|snapshot| snapshot.warnings),
         openclaw_workspace,
+        hermes_memory,
+    })
+}
+
+fn load_hermes_memory_snapshot(app_type: &AppType) -> Result<HermesMemorySnapshot, AppError> {
+    if !matches!(app_type, AppType::Hermes) {
+        return Ok(HermesMemorySnapshot::default());
+    }
+
+    let limits = read_memory_limits()?;
+    Ok(HermesMemorySnapshot {
+        memory_content: read_memory(MemoryKind::Memory)?,
+        user_content: read_memory(MemoryKind::User)?,
+        memory_limit: limits.memory,
+        user_limit: limits.user,
+        memory_enabled: limits.memory_enabled,
+        user_enabled: limits.user_enabled,
     })
 }
 

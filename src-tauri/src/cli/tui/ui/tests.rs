@@ -1022,6 +1022,7 @@ fn visible_apps_picker_uses_space_toggle_key() {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         },
     };
@@ -2368,7 +2369,7 @@ fn skills_page_renders_sync_method_and_installed_rows() {
     let buf = render(&app, &data);
     let all = all_text(&buf);
 
-    assert!(all.contains(&texts::tui_skills_installed_counts(1, 0, 0, 0)));
+    assert!(all.contains(&texts::tui_skills_installed_counts(1, 0, 0, 0, 0)));
     assert!(!all.contains(texts::tui_header_directory()));
     assert!(all.contains(AppType::Claude.as_str()));
     assert!(all.contains(AppType::Codex.as_str()));
@@ -2463,6 +2464,33 @@ fn skills_page_shows_opencode_summary() {
 }
 
 #[test]
+fn skills_page_renders_hermes_column_and_summary() {
+    let _lock = lock_env();
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Hermes));
+    app.route = Route::Skills;
+    app.focus = Focus::Content;
+
+    let mut data = minimal_data(&app.app_type);
+    let mut skill = installed_skill("hello-skill", "Hello Skill");
+    skill.apps = SkillApps {
+        claude: false,
+        codex: false,
+        gemini: false,
+        opencode: false,
+        hermes: true,
+    };
+    data.skills.installed = vec![skill];
+
+    let buf = render(&app, &data);
+    let all = all_text(&buf);
+
+    assert!(all.contains(AppType::Hermes.as_str()), "{all}");
+    assert!(all.contains("Hermes: 1"), "{all}");
+}
+
+#[test]
 fn skill_detail_page_shows_opencode_enabled_state() {
     let _lock = lock_env();
     let _no_color = EnvGuard::remove("NO_COLOR");
@@ -2490,6 +2518,36 @@ fn skill_detail_page_shows_opencode_enabled_state() {
     assert!(all.contains(texts::tui_label_enabled_for()));
     assert!(all.contains("OpenCode"));
     assert!(!all.contains("opencode=true"));
+}
+
+#[test]
+fn skill_detail_page_shows_hermes_enabled_state() {
+    let _lock = lock_env();
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Hermes));
+    app.route = Route::SkillDetail {
+        directory: "hello-skill".to_string(),
+    };
+    app.focus = Focus::Content;
+
+    let mut data = minimal_data(&app.app_type);
+    let mut skill = installed_skill("hello-skill", "Hello Skill");
+    skill.apps = SkillApps {
+        claude: false,
+        codex: false,
+        gemini: false,
+        opencode: false,
+        hermes: true,
+    };
+    data.skills.installed = vec![skill];
+
+    let buf = render(&app, &data);
+    let all = all_text(&buf);
+
+    assert!(all.contains(texts::tui_label_enabled_for()));
+    assert!(all.contains("Hermes"));
+    assert!(!all.contains("hermes=true"));
 }
 
 #[test]
@@ -2555,6 +2613,43 @@ fn mcp_page_renders_opencode_column() {
     let all = all_text(&buf);
 
     assert!(all.contains("opencode"));
+}
+
+#[test]
+fn mcp_page_renders_hermes_column_and_summary() {
+    let _lock = lock_env();
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Hermes));
+    app.route = Route::Mcp;
+    app.focus = Focus::Content;
+
+    let mut data = minimal_data(&app.app_type);
+    data.mcp.rows = vec![super::super::data::McpRow {
+        id: "m1".to_string(),
+        server: crate::app_config::McpServer {
+            id: "m1".to_string(),
+            name: "Server".to_string(),
+            server: json!({}),
+            apps: crate::app_config::McpApps {
+                claude: false,
+                codex: false,
+                gemini: false,
+                opencode: false,
+                hermes: true,
+            },
+            description: None,
+            homepage: None,
+            docs: None,
+            tags: vec![],
+        },
+    }];
+
+    let buf = render(&app, &data);
+    let all = all_text(&buf);
+
+    assert!(all.contains("hermes"), "{all}");
+    assert!(all.contains("Hermes: 1"), "{all}");
 }
 
 #[test]
@@ -5109,6 +5204,68 @@ fn workspace_openclaw_nav_uses_app_specific_labels_and_hides_generic_entries() {
     assert!(!all.contains(&nav_label_text(NavItem::Skills)), "{all}");
     assert!(!all.contains(&nav_label_text(NavItem::Prompts)), "{all}");
     assert!(!all.contains(&nav_label_text(NavItem::Config)), "{all}");
+}
+
+#[test]
+fn hermes_nav_uses_app_specific_labels_and_keeps_config_without_prompts() {
+    let _lock = lock_env();
+    let _lang = use_test_language(Language::Chinese);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let app = App::new(Some(AppType::Hermes));
+    let buf = render(&app, &minimal_data(&app.app_type));
+    let all = nav_text(&app, &buf);
+    let expected = [
+        NavItem::Main,
+        NavItem::Providers,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::HermesMemory,
+        NavItem::Config,
+        NavItem::Settings,
+        NavItem::Exit,
+    ]
+    .map(nav_label_text);
+    let positions = expected
+        .iter()
+        .map(|label| all.find(label).expect("Hermes nav label should render"))
+        .collect::<Vec<_>>();
+
+    assert!(positions.windows(2).all(|pair| pair[0] < pair[1]), "{all}");
+    assert!(!all.contains(&nav_label_text(NavItem::Prompts)), "{all}");
+    assert!(
+        !all.contains(&nav_label_text(NavItem::OpenClawWorkspace)),
+        "{all}"
+    );
+}
+
+#[test]
+fn hermes_memory_route_renders_memory_rows_and_limits() {
+    let _lock = lock_env();
+    let _lang = use_test_language(Language::English);
+    let _no_color = EnvGuard::remove("NO_COLOR");
+
+    let mut app = App::new(Some(AppType::Hermes));
+    app.route = Route::HermesMemory;
+    app.focus = Focus::Content;
+    let mut data = minimal_data(&app.app_type);
+    data.config.hermes_memory.memory_content = "Remember project decisions.".to_string();
+    data.config.hermes_memory.user_content = "Alex prefers concise summaries.".to_string();
+    data.config.hermes_memory.memory_limit = 2200;
+    data.config.hermes_memory.user_limit = 1375;
+    data.config.hermes_memory.memory_enabled = true;
+    data.config.hermes_memory.user_enabled = false;
+
+    let buf = render(&app, &data);
+    let all = content_text(&app, &buf);
+
+    assert!(all.contains("Memory"), "{all}");
+    assert!(all.contains("Agent Memory (MEMORY.md)"), "{all}");
+    assert!(all.contains("User Profile (USER.md)"), "{all}");
+    assert!(all.contains("enabled"), "{all}");
+    assert!(all.contains("disabled"), "{all}");
+    assert!(all.contains("2200"), "{all}");
+    assert!(all.contains("1375"), "{all}");
 }
 
 #[test]

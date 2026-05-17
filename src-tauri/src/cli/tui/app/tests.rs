@@ -21,6 +21,7 @@ mod tests {
     use crate::cli::tui::terminal::TuiTerminal;
     use crate::commands::workspace::{DailyMemoryFileInfo, DailyMemorySearchResult, ALLOWED_FILES};
     use crate::error::AppError;
+    use crate::hermes_config::{read_memory, read_memory_limits, MemoryKind};
     use crate::prompt::Prompt;
     use crate::provider::Provider;
     use crate::services::PromptService;
@@ -310,6 +311,10 @@ mod tests {
             .expect("workspace row should exist")
     }
 
+    fn hermes_memory_nav_index(app: &App) -> usize {
+        nav_index(app, NavItem::HermesMemory)
+    }
+
     fn run_runtime_action(
         app: &mut App,
         data: &mut UiData,
@@ -475,7 +480,7 @@ mod tests {
             .installed
             .push(installed_skill("hello-skill", "Hello Skill"));
 
-        let action = app.on_key(key(KeyCode::Char('x')), &data);
+        let action = app.on_key(key(KeyCode::Char(' ')), &data);
         assert!(matches!(action, Action::None));
     }
 
@@ -569,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn skills_apps_picker_from_openclaw_targets_opencode_last_visible_row() {
+    fn skills_apps_picker_from_openclaw_targets_hermes_last_visible_row() {
         let mut app = App::new(Some(AppType::OpenClaw));
         app.route = Route::Skills;
         app.focus = Focus::Content;
@@ -585,6 +590,47 @@ mod tests {
             &app.overlay,
             Overlay::SkillsAppsPicker { selected, .. } if *selected == 4
         ));
+
+        let action = app.on_key(key(KeyCode::Char(' ')), &data);
+        assert!(matches!(action, Action::None));
+        assert!(matches!(
+            &app.overlay,
+            Overlay::SkillsAppsPicker { selected, apps, .. }
+                if *selected == 4
+                    && !apps.claude
+                    && !apps.codex
+                    && !apps.gemini
+                    && !apps.opencode
+                    && apps.hermes
+        ));
+    }
+
+    #[test]
+    fn skills_apps_picker_keyboard_can_select_hermes() {
+        let mut app = App::new(Some(AppType::Claude));
+        app.route = Route::Skills;
+        app.focus = Focus::Content;
+
+        let mut data = UiData::default();
+        data.skills
+            .installed
+            .push(crate::services::skill::InstalledSkill {
+                id: "local:hello-skill".to_string(),
+                name: "Hello Skill".to_string(),
+                description: None,
+                directory: "hello-skill".to_string(),
+                repo_owner: None,
+                repo_name: None,
+                repo_branch: None,
+                readme_url: None,
+                apps: crate::app_config::SkillApps::default(),
+                installed_at: 0,
+            });
+
+        app.on_key(key(KeyCode::Char('m')), &data);
+        for _ in 0..4 {
+            app.on_key(key(KeyCode::Down), &data);
+        }
 
         let action = app.on_key(key(KeyCode::Char(' ')), &data);
         assert!(matches!(action, Action::None));
@@ -3827,6 +3873,126 @@ mod tests {
     }
 
     #[test]
+    fn hermes_nav_memory_enter_opens_dedicated_subroute() {
+        let mut app = App::new(Some(AppType::Hermes));
+        app.focus = Focus::Nav;
+        app.nav_idx = hermes_memory_nav_index(&app);
+
+        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+
+        assert!(matches!(action, Action::SwitchRoute(Route::HermesMemory)));
+        assert!(matches!(app.route, Route::HermesMemory));
+        assert_eq!(app.route_stack, vec![Route::Main]);
+    }
+
+    #[test]
+    fn hermes_memory_enter_opens_selected_blob_editor() {
+        let mut app = App::new(Some(AppType::Hermes));
+        app.route = Route::HermesMemory;
+        app.focus = Focus::Content;
+        app.hermes_memory_idx = 1;
+
+        let action = app.on_key(key(KeyCode::Enter), &UiData::default());
+
+        assert!(matches!(
+            action,
+            Action::HermesMemoryOpen {
+                kind: MemoryKind::User
+            }
+        ));
+    }
+
+    #[test]
+    fn hermes_memory_space_toggles_selected_blob() {
+        let mut app = App::new(Some(AppType::Hermes));
+        app.route = Route::HermesMemory;
+        app.focus = Focus::Content;
+        app.hermes_memory_idx = 0;
+        let mut data = UiData::default();
+        data.config.hermes_memory.memory_enabled = true;
+
+        let action = app.on_key(key(KeyCode::Char(' ')), &data);
+
+        assert!(matches!(
+            action,
+            Action::HermesMemorySetEnabled {
+                kind: MemoryKind::Memory,
+                enabled: false
+            }
+        ));
+    }
+
+    #[test]
+    #[serial]
+    fn hermes_memory_runtime_open_and_submit_writes_file() {
+        let temp = TempDir::new().expect("temp home");
+        let _env = EnvGuard::set_home(temp.path());
+        let mut app = App::new(Some(AppType::Hermes));
+        let mut data = UiData::default();
+        data.config.hermes_memory.memory_content = "old memory".to_string();
+
+        run_runtime_action(
+            &mut app,
+            &mut data,
+            Action::HermesMemoryOpen {
+                kind: MemoryKind::Memory,
+            },
+        )
+        .expect("open memory editor");
+
+        let editor = app.editor.as_ref().expect("editor should open");
+        assert_eq!(
+            editor.submit,
+            EditorSubmit::HermesMemory {
+                kind: MemoryKind::Memory
+            }
+        );
+        assert_eq!(editor.initial_text, "old memory");
+
+        run_runtime_action(
+            &mut app,
+            &mut data,
+            Action::EditorSubmit {
+                submit: EditorSubmit::HermesMemory {
+                    kind: MemoryKind::Memory,
+                },
+                content: "new memory".to_string(),
+            },
+        )
+        .expect("submit memory editor");
+
+        assert_eq!(
+            read_memory(MemoryKind::Memory).expect("read memory"),
+            "new memory"
+        );
+        assert_eq!(data.config.hermes_memory.memory_content, "new memory");
+        assert!(app.editor.is_none());
+    }
+
+    #[test]
+    #[serial]
+    fn hermes_memory_runtime_toggle_writes_config() {
+        let temp = TempDir::new().expect("temp home");
+        let _env = EnvGuard::set_home(temp.path());
+        let mut app = App::new(Some(AppType::Hermes));
+        let mut data = UiData::default();
+
+        run_runtime_action(
+            &mut app,
+            &mut data,
+            Action::HermesMemorySetEnabled {
+                kind: MemoryKind::User,
+                enabled: false,
+            },
+        )
+        .expect("toggle user memory");
+
+        let limits = read_memory_limits().expect("read memory limits");
+        assert!(!limits.user_enabled);
+        assert!(!data.config.hermes_memory.user_enabled);
+    }
+
+    #[test]
     fn openclaw_nav_split_keeps_non_openclaw_generic_routes() {
         let cases = [
             (NavItem::Mcp, Route::Mcp),
@@ -4235,6 +4401,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     #[serial(home_settings)]
     fn openclaw_workspace_open_failure_is_localized() {
@@ -4360,6 +4527,7 @@ mod tests {
         assert_eq!(editor.text(), "late content");
     }
 
+    #[cfg(unix)]
     #[test]
     #[serial(home_settings)]
     fn openclaw_daily_memory_save_failure_is_localized() {
@@ -8348,6 +8516,7 @@ mod tests {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         })
         .expect("save visible apps");

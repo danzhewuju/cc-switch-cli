@@ -5,6 +5,7 @@ use crate::cli::i18n::texts;
 use crate::cli::tui::form::strip_common_config_from_settings;
 use crate::commands::workspace;
 use crate::error::AppError;
+use crate::hermes_config::{write_memory, MemoryKind};
 use crate::openclaw_config::{
     set_agents_defaults, set_env_config, set_tools_config, OpenClawAgentsDefaults,
     OpenClawEnvConfig, OpenClawToolsConfig,
@@ -272,11 +273,30 @@ pub(super) fn submit(
         EditorSubmit::OpenClawDailyMemoryFile { filename } => {
             submit_openclaw_daily_memory_file(ctx, filename, content)
         }
+        EditorSubmit::HermesMemory { kind } => submit_hermes_memory(ctx, kind, content),
         EditorSubmit::ConfigOpenClawEnv => submit_openclaw_env(ctx, content),
         EditorSubmit::ConfigOpenClawTools => submit_openclaw_tools(ctx, content),
         EditorSubmit::ConfigOpenClawAgents => submit_openclaw_agents(ctx, content),
         EditorSubmit::ConfigWebDavSettings => submit_webdav_settings(ctx, content),
     }
+}
+
+fn submit_hermes_memory(
+    ctx: &mut RuntimeActionContext<'_>,
+    kind: MemoryKind,
+    content: String,
+) -> Result<(), AppError> {
+    write_memory(kind, &content)?;
+    match kind {
+        MemoryKind::Memory => ctx.data.config.hermes_memory.memory_content = content,
+        MemoryKind::User => ctx.data.config.hermes_memory.user_content = content,
+    }
+    ctx.app.editor = None;
+    ctx.app.push_toast(
+        crate::t!("Hermes memory saved", "Hermes 记忆已保存"),
+        ToastKind::Success,
+    );
+    Ok(())
 }
 
 fn submit_prompt_create(
@@ -622,14 +642,21 @@ fn submit_provider_form_apply_hermes_models(
     ctx: &mut RuntimeActionContext<'_>,
     content: String,
 ) -> Result<(), AppError> {
-    let models_value: Value = match serde_json::from_str(&content) {
-        Ok(value) => value,
-        Err(e) => {
-            ctx.app.push_toast(
-                texts::tui_toast_invalid_json(&e.to_string()),
-                ToastKind::Error,
-            );
-            return Ok(());
+    // 允许用户提交空文本来清空模型列表（apply_hermes_models_value 期望
+    // array / object 中的一个，因此空字符串需在此处转换为空数组）。
+    let trimmed = content.trim();
+    let models_value: Value = if trimmed.is_empty() {
+        Value::Array(Vec::new())
+    } else {
+        match serde_json::from_str(trimmed) {
+            Ok(value) => value,
+            Err(e) => {
+                ctx.app.push_toast(
+                    texts::tui_toast_invalid_json(&e.to_string()),
+                    ToastKind::Error,
+                );
+                return Ok(());
+            }
         }
     };
 

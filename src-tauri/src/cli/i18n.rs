@@ -1654,6 +1654,22 @@ pub mod texts {
         }
     }
 
+    pub fn tui_label_hermes_rate_limit_delay() -> &'static str {
+        if is_chinese() {
+            "限流间隔(秒)"
+        } else {
+            "Rate Limit Delay (s)"
+        }
+    }
+
+    pub fn tui_hint_hermes_rate_limit_delay() -> &'static str {
+        if is_chinese() {
+            "供应商最低请求间隔，可填小数（例如 0.5），留空关闭。"
+        } else {
+            "Minimum delay between requests for this provider; decimals allowed (e.g. 0.5). Leave blank to disable."
+        }
+    }
+
     pub fn tui_hermes_api_mode_value(api_mode: &str) -> &'static str {
         match api_mode {
             "codex_responses" => {
@@ -1843,9 +1859,17 @@ pub mod texts {
 
     pub fn tui_hermes_models_open_hint() -> &'static str {
         if is_chinese() {
-            "按 Enter 编辑 Hermes 模型列表"
+            "Enter 编辑 / F 从 API 拉取模型"
         } else {
-            "Press Enter to edit Hermes models"
+            "Enter to edit · F to fetch from API"
+        }
+    }
+
+    pub fn tui_toast_hermes_models_fetched(added: usize, fetched: usize, total: usize) -> String {
+        if is_chinese() {
+            format!("已获取 {fetched} 个模型（新增 {added}，当前共 {total}）")
+        } else {
+            format!("Fetched {fetched} model(s) ({added} new, {total} total)")
         }
     }
 
@@ -2012,6 +2036,14 @@ pub mod texts {
             "应用: OpenCode"
         } else {
             "App: OpenCode"
+        }
+    }
+
+    pub fn tui_label_app_hermes() -> &'static str {
+        if is_chinese() {
+            "应用: Hermes"
+        } else {
+            "App: Hermes"
         }
     }
 
@@ -3689,14 +3721,15 @@ pub mod texts {
         codex: usize,
         gemini: usize,
         opencode: usize,
+        hermes: usize,
     ) -> String {
         if is_chinese() {
             format!(
-                "已安装 · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode}"
+                "已安装 · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode} · Hermes: {hermes}"
             )
         } else {
             format!(
-                "Installed · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode}"
+                "Installed · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode} · Hermes: {hermes}"
             )
         }
     }
@@ -3706,14 +3739,15 @@ pub mod texts {
         codex: usize,
         gemini: usize,
         opencode: usize,
+        hermes: usize,
     ) -> String {
         if is_chinese() {
             format!(
-                "已安装 · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode}"
+                "已安装 · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode} · Hermes: {hermes}"
             )
         } else {
             format!(
-                "Installed · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode}"
+                "Installed · Claude: {claude} · Codex: {codex} · Gemini: {gemini} · OpenCode: {opencode} · Hermes: {hermes}"
             )
         }
     }
@@ -6489,6 +6523,19 @@ pub mod texts {
 
     pub fn menu_openclaw_agents_variants() -> (&'static str, &'static str) {
         ("🤖 Agents Config", "🤖 Agents 配置")
+    }
+
+    pub fn menu_hermes_memory() -> &'static str {
+        let (en, zh) = menu_hermes_memory_variants();
+        if is_chinese() {
+            zh
+        } else {
+            en
+        }
+    }
+
+    pub fn menu_hermes_memory_variants() -> (&'static str, &'static str) {
+        ("🧠 Memory", "🧠 记忆管理")
     }
 
     pub fn menu_settings() -> &'static str {

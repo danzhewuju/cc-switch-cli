@@ -224,6 +224,7 @@ pub(super) fn nav_label(item: NavItem) -> &'static str {
         NavItem::OpenClawEnv => texts::menu_openclaw_env(),
         NavItem::OpenClawTools => texts::menu_openclaw_tools(),
         NavItem::OpenClawAgents => texts::menu_openclaw_agents(),
+        NavItem::HermesMemory => texts::menu_hermes_memory(),
         NavItem::Settings => texts::menu_settings(),
         NavItem::Exit => texts::menu_exit(),
     }
@@ -241,6 +242,7 @@ pub(super) fn nav_label_variants(item: NavItem) -> (&'static str, &'static str) 
         NavItem::OpenClawEnv => texts::menu_openclaw_env_variants(),
         NavItem::OpenClawTools => texts::menu_openclaw_tools_variants(),
         NavItem::OpenClawAgents => texts::menu_openclaw_agents_variants(),
+        NavItem::HermesMemory => texts::menu_hermes_memory_variants(),
         NavItem::Settings => texts::menu_settings_variants(),
         NavItem::Exit => texts::menu_exit_variants(),
     }
@@ -257,6 +259,7 @@ pub(super) fn nav_pane_width(theme: &super::theme::Theme) -> u16 {
     let max_text_width = NavItem::ALL
         .iter()
         .chain(NavItem::OPENCLAW_ALL.iter())
+        .chain(NavItem::HERMES_ALL.iter())
         .flat_map(|item| {
             let (en, zh) = nav_label_variants(*item);
             [en, zh]

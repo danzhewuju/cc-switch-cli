@@ -1,18 +1,13 @@
 use super::codex_config::parse_codex_config_snippet;
 use super::{
     claude_hide_attribution_enabled, detect_balance_provider_for_usage_query,
-    detect_coding_plan_provider_for_usage_query, ClaudeApiFormat, ProviderAddFormState,
-    UsageQueryTemplate, OPENCLAW_DEFAULT_API_PROTOCOL,
+    detect_coding_plan_provider_for_usage_query, ClaudeApiFormat, HermesApiMode,
+    ProviderAddFormState, UsageQueryTemplate, HERMES_DEFAULT_API_MODE,
+    OPENCLAW_DEFAULT_API_PROTOCOL,
 };
 use crate::app_config::AppType;
 use crate::provider::Provider;
 use serde_json::Value;
-
-use super::codex_config::parse_codex_config_snippet;
-use super::{
-    claude_hide_attribution_enabled, ClaudeApiFormat, ProviderAddFormState,
-    HERMES_DEFAULT_API_MODE, OPENCLAW_DEFAULT_API_PROTOCOL,
-};
 
 pub(super) fn populate_form_from_provider(
     form: &mut ProviderAddFormState,
@@ -299,29 +294,49 @@ fn populate_hermes_form(form: &mut ProviderAddFormState, provider: &Provider) {
         form.hermes_model.set(model);
     }
 
-    form.hermes_models = provider
-        .settings_config
-        .get("models")
-        .cloned()
-        .unwrap_or_else(|| Value::Object(serde_json::Map::new()));
+    // Hermes 在 settings_config 中的 models 可能是 array 或 dict，
+    // 统一转换为 array-of-objects 在表单内部使用：
+    //   - array: `[{ id, name?, context_length?, ... }]` 保持原样
+    //   - dict:  `{ id: { name?, ... } }` 转为 array 并注入 id
+    form.hermes_models = match provider.settings_config.get("models") {
+        Some(Value::Array(arr)) => arr.clone(),
+        Some(Value::Object(map)) => map
+            .iter()
+            .filter_map(|(id, value)| {
+                if id.trim().is_empty() {
+                    return None;
+                }
+                let mut obj = match value {
+                    Value::Object(obj) => obj.clone(),
+                    Value::Null => serde_json::Map::new(),
+                    _ => return None,
+                };
+                obj.insert("id".to_string(), Value::String(id.clone()));
+                Some(Value::Object(obj))
+            })
+            .collect(),
+        _ => Vec::new(),
+    };
+
+    if let Some(delay) = provider.settings_config.get("rate_limit_delay") {
+        let rendered = match delay {
+            Value::String(s) => s.trim().to_string(),
+            Value::Number(n) => n.to_string(),
+            _ => String::new(),
+        };
+        if !rendered.is_empty() {
+            form.hermes_rate_limit_delay.set(rendered);
+        }
+    }
 
     if form.hermes_model.is_blank() {
-        match &form.hermes_models {
-            Value::Object(models) => {
-                if let Some(model_id) = models.keys().next() {
-                    form.hermes_model.set(model_id);
-                }
-            }
-            Value::Array(models) => {
-                if let Some(model_id) = models
-                    .first()
-                    .and_then(|model| model.get("id"))
-                    .and_then(|value| value.as_str())
-                {
-                    form.hermes_model.set(model_id);
-                }
-            }
-            _ => {}
+        if let Some(model_id) = form
+            .hermes_models
+            .first()
+            .and_then(|model| model.get("id"))
+            .and_then(|value| value.as_str())
+        {
+            form.hermes_model.set(model_id);
         }
     }
 }

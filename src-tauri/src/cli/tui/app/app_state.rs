@@ -164,6 +164,13 @@ pub enum Action {
     OpenClawDailyMemoryOpenFile {
         filename: String,
     },
+    HermesMemoryOpen {
+        kind: MemoryKind,
+    },
+    HermesMemorySetEnabled {
+        kind: MemoryKind,
+        enabled: bool,
+    },
     OpenClawDailyMemorySearch {
         query: String,
     },
@@ -505,6 +512,7 @@ pub struct App {
     pub config_idx: usize,
     pub workspace_idx: usize,
     pub daily_memory_idx: usize,
+    pub hermes_memory_idx: usize,
     pub openclaw_tools_form: Option<OpenClawToolsFormState>,
     pub openclaw_agents_form: Option<OpenClawAgentsFormState>,
     pub openclaw_daily_memory_search_query: String,

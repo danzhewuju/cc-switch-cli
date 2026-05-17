@@ -31,7 +31,7 @@ fn common_json_preview_value(app_type: &AppType, common_snippet: &str) -> Option
         AppType::Gemini => serde_json::from_str::<Value>(common_snippet)
             .ok()
             .map(|env| json!({ "env": env })),
-        AppType::Codex | AppType::OpenCode | AppType::OpenClaw => None,
+        AppType::Codex | AppType::OpenCode | AppType::Hermes | AppType::OpenClaw => None,
     }
     .filter(Value::is_object)
 }
@@ -851,6 +851,9 @@ pub(crate) fn provider_field_label_and_value(
         ProviderAddField::HermesApiKey => texts::tui_label_api_key().to_string(),
         ProviderAddField::HermesModel => texts::model_label().to_string(),
         ProviderAddField::HermesModels => texts::tui_label_hermes_models().to_string(),
+        ProviderAddField::HermesRateLimitDelay => {
+            texts::tui_label_hermes_rate_limit_delay().to_string()
+        }
         ProviderAddField::ClaudeBaseUrl => texts::tui_label_base_url().to_string(),
         ProviderAddField::ClaudeApiFormat => texts::tui_label_claude_api_format().to_string(),
         ProviderAddField::ClaudeApiKey => texts::tui_label_api_key().to_string(),

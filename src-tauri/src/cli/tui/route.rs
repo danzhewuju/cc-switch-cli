@@ -13,6 +13,7 @@ pub enum Route {
     ConfigOpenClawEnv,
     ConfigOpenClawTools,
     ConfigOpenClawAgents,
+    HermesMemory,
     ConfigWebDav,
     Skills,
     SkillsDiscover,
@@ -34,6 +35,7 @@ pub enum NavItem {
     OpenClawEnv,
     OpenClawTools,
     OpenClawAgents,
+    HermesMemory,
     Settings,
     Exit,
 }
@@ -61,9 +63,22 @@ impl NavItem {
         NavItem::Exit,
     ];
 
+    pub const HERMES_ALL: [NavItem; 8] = [
+        NavItem::Main,
+        NavItem::Providers,
+        NavItem::Mcp,
+        NavItem::Skills,
+        NavItem::HermesMemory,
+        NavItem::Config,
+        NavItem::Settings,
+        NavItem::Exit,
+    ];
+
     pub fn all_for_app(app_type: &AppType) -> &'static [NavItem] {
         if matches!(app_type, AppType::OpenClaw) {
             &Self::OPENCLAW_ALL
+        } else if matches!(app_type, AppType::Hermes) {
+            &Self::HERMES_ALL
         } else {
             &Self::ALL
         }
@@ -81,6 +96,7 @@ impl NavItem {
             NavItem::OpenClawEnv => Some(Route::ConfigOpenClawEnv),
             NavItem::OpenClawTools => Some(Route::ConfigOpenClawTools),
             NavItem::OpenClawAgents => Some(Route::ConfigOpenClawAgents),
+            NavItem::HermesMemory => Some(Route::HermesMemory),
             NavItem::Settings => Some(Route::Settings),
             NavItem::Exit => None,
         }

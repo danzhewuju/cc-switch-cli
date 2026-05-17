@@ -41,6 +41,7 @@ fn run(cli: Cli) -> Result<(), AppError> {
         Some(Commands::Failover(cmd)) => {
             cc_switch_lib::cli::commands::failover::execute(cmd, cli.app)
         }
+        Some(Commands::Hermes(cmd)) => cc_switch_lib::cli::commands::hermes::execute(cmd),
         #[cfg(unix)]
         Some(Commands::Start(cmd)) => cc_switch_lib::cli::commands::start::execute(cmd),
         Some(Commands::Env(cmd)) => cc_switch_lib::cli::commands::env::execute(cmd, cli.app),
