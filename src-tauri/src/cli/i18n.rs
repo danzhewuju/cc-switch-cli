@@ -1638,6 +1638,55 @@ pub mod texts {
         }
     }
 
+    pub fn tui_label_hermes_api_mode() -> &'static str {
+        if is_chinese() {
+            "API 模式"
+        } else {
+            "API Mode"
+        }
+    }
+
+    pub fn tui_label_hermes_models() -> &'static str {
+        if is_chinese() {
+            "模型列表"
+        } else {
+            "Models"
+        }
+    }
+
+    pub fn tui_hermes_api_mode_value(api_mode: &str) -> &'static str {
+        match api_mode {
+            "codex_responses" => {
+                if is_chinese() {
+                    "Codex Responses API"
+                } else {
+                    "Codex Responses API"
+                }
+            }
+            "anthropic_messages" => {
+                if is_chinese() {
+                    "Anthropic Messages"
+                } else {
+                    "Anthropic Messages"
+                }
+            }
+            "bedrock_converse" => {
+                if is_chinese() {
+                    "Bedrock Converse"
+                } else {
+                    "Bedrock Converse"
+                }
+            }
+            _ => {
+                if is_chinese() {
+                    "OpenAI Chat Completions"
+                } else {
+                    "OpenAI Chat Completions"
+                }
+            }
+        }
+    }
+
     pub fn tui_label_openclaw_status() -> &'static str {
         if is_chinese() {
             "状态"
@@ -1778,11 +1827,49 @@ pub mod texts {
         }
     }
 
+    pub fn tui_hermes_models_summary(total: usize) -> String {
+        if is_chinese() {
+            if total == 0 {
+                "未配置模型".to_string()
+            } else {
+                format!("已配置 {total} 个模型")
+            }
+        } else if total == 0 {
+            "No models configured".to_string()
+        } else {
+            format!("{total} models configured")
+        }
+    }
+
+    pub fn tui_hermes_models_open_hint() -> &'static str {
+        if is_chinese() {
+            "按 Enter 编辑 Hermes 模型列表"
+        } else {
+            "Press Enter to edit Hermes models"
+        }
+    }
+
+    pub fn tui_hermes_models_editor_title() -> &'static str {
+        if is_chinese() {
+            "Hermes 模型列表"
+        } else {
+            "Hermes Models"
+        }
+    }
+
     pub fn tui_toast_json_must_be_array() -> &'static str {
         if is_chinese() {
             "JSON 必须是数组"
         } else {
             "JSON must be an array"
+        }
+    }
+
+    pub fn tui_toast_json_must_be_object_or_array() -> &'static str {
+        if is_chinese() {
+            "JSON 必须是对象或数组"
+        } else {
+            "JSON must be an object or array"
         }
     }
 

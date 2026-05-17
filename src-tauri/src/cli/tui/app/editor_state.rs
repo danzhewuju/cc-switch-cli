@@ -18,6 +18,7 @@ pub enum EditorSubmit {
         id: String,
     },
     ProviderFormApplyJson,
+    ProviderFormApplyHermesModels,
     ProviderFormApplyOpenClawModels,
     ProviderFormApplyUsageScriptCode,
     ProviderFormApplyCodexAuth,

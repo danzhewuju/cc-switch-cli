@@ -595,6 +595,7 @@ mod tests {
             codex: true,
             gemini: true,
             opencode: true,
+            hermes: false,
             openclaw: true,
         })
         .expect("save initial visible apps");
@@ -604,6 +605,7 @@ mod tests {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         };
         let mut app = App::new(Some(AppType::OpenClaw));
@@ -663,6 +665,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: true,
+            hermes: false,
             openclaw: true,
         };
         crate::settings::set_visible_apps(initial_visible_apps.clone())
@@ -684,6 +687,7 @@ mod tests {
                     codex: false,
                     gemini: false,
                     opencode: false,
+                    hermes: false,
                     openclaw: false,
                 },
             },
@@ -711,6 +715,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: true,
+            hermes: false,
             openclaw: true,
         })
         .expect("save initial visible apps");
@@ -721,6 +726,7 @@ mod tests {
             codex: false,
             gemini: false,
             opencode: true,
+            hermes: false,
             openclaw: false,
         };
         let mut app = App::new(Some(AppType::Claude));
@@ -757,6 +763,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: true,
+            hermes: false,
             openclaw: true,
         };
         crate::settings::set_visible_apps(initial_visible_apps.clone())
@@ -775,6 +782,7 @@ mod tests {
                     codex: false,
                     gemini: false,
                     opencode: false,
+                    hermes: false,
                     openclaw: false,
                 },
             },

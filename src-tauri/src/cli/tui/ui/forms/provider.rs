@@ -6,12 +6,19 @@ fn claude_api_format_label(api_format: crate::cli::tui::form::ClaudeApiFormat) -
     texts::tui_claude_api_format_value(api_format.as_str()).to_string()
 }
 
+fn hermes_api_mode_label(api_mode: crate::cli::tui::form::HermesApiMode) -> String {
+    texts::tui_hermes_api_mode_value(api_mode.as_str()).to_string()
+}
+
 fn should_redact_provider_field(
     provider: &super::form::ProviderAddFormState,
     field: ProviderAddField,
 ) -> bool {
-    matches!(provider.app_type, AppType::OpenClaw)
-        && matches!(field, ProviderAddField::OpenCodeApiKey)
+    matches!(
+        (&provider.app_type, field),
+        (&AppType::OpenClaw, ProviderAddField::OpenCodeApiKey)
+            | (&AppType::Hermes, ProviderAddField::HermesApiKey)
+    )
 }
 
 fn common_json_preview_value(app_type: &AppType, common_snippet: &str) -> Option<Value> {
@@ -839,6 +846,11 @@ pub(crate) fn provider_field_label_and_value(
             strip_trailing_colon(texts::website_url_label()).to_string()
         }
         ProviderAddField::Notes => strip_trailing_colon(texts::notes_label()).to_string(),
+        ProviderAddField::HermesApiMode => texts::tui_label_hermes_api_mode().to_string(),
+        ProviderAddField::HermesBaseUrl => texts::tui_label_base_url().to_string(),
+        ProviderAddField::HermesApiKey => texts::tui_label_api_key().to_string(),
+        ProviderAddField::HermesModel => texts::model_label().to_string(),
+        ProviderAddField::HermesModels => texts::tui_label_hermes_models().to_string(),
         ProviderAddField::ClaudeBaseUrl => texts::tui_label_base_url().to_string(),
         ProviderAddField::ClaudeApiFormat => texts::tui_label_claude_api_format().to_string(),
         ProviderAddField::ClaudeApiKey => texts::tui_label_api_key().to_string(),
@@ -888,6 +900,8 @@ pub(crate) fn provider_field_label_and_value(
     };
 
     let value = match field {
+        ProviderAddField::HermesApiMode => hermes_api_mode_label(provider.hermes_api_mode),
+        ProviderAddField::HermesModels => provider.hermes_models_summary(),
         ProviderAddField::ClaudeApiFormat => claude_api_format_label(provider.claude_api_format),
         ProviderAddField::CodexWireApi => provider.codex_wire_api.as_str().to_string(),
         ProviderAddField::CodexRequiresOpenaiAuth => {
@@ -1012,6 +1026,10 @@ pub(crate) fn provider_field_editor_line(
             ProviderAddField::GeminiAuthType => {
                 format!("auth_type = {}", provider.gemini_auth_type.as_str())
             }
+            ProviderAddField::HermesApiMode => {
+                format!("api_mode = {}", provider.hermes_api_mode.as_str())
+            }
+            ProviderAddField::HermesModels => texts::tui_hermes_models_open_hint().to_string(),
             ProviderAddField::OpenClawApiProtocol => {
                 format!("api = {}", provider.opencode_npm_package.value.trim())
             }

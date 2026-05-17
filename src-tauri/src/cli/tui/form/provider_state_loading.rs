@@ -8,6 +8,12 @@ use crate::app_config::AppType;
 use crate::provider::Provider;
 use serde_json::Value;
 
+use super::codex_config::parse_codex_config_snippet;
+use super::{
+    claude_hide_attribution_enabled, ClaudeApiFormat, ProviderAddFormState,
+    HERMES_DEFAULT_API_MODE, OPENCLAW_DEFAULT_API_PROTOCOL,
+};
+
 pub(super) fn populate_form_from_provider(
     form: &mut ProviderAddFormState,
     app_type: &AppType,
@@ -18,6 +24,7 @@ pub(super) fn populate_form_from_provider(
         AppType::Codex => populate_codex_form(form, provider),
         AppType::Gemini => populate_gemini_form(form, provider),
         AppType::OpenCode => populate_opencode_form(form, provider),
+        AppType::Hermes => populate_hermes_form(form, provider),
         AppType::OpenClaw => populate_openclaw_form(form, provider),
     }
     populate_usage_query_form(form, provider);
@@ -251,6 +258,70 @@ fn populate_opencode_form(form: &mut ProviderAddFormState, provider: &Provider) 
                     form.opencode_model_output_limit.set(output.to_string());
                 }
             }
+        }
+    }
+}
+
+fn populate_hermes_form(form: &mut ProviderAddFormState, provider: &Provider) {
+    form.hermes_api_mode = provider
+        .settings_config
+        .get("api_mode")
+        .or_else(|| provider.settings_config.get("apiMode"))
+        .and_then(|value| value.as_str())
+        .map(HermesApiMode::from_raw)
+        .unwrap_or_else(|| HermesApiMode::from_raw(HERMES_DEFAULT_API_MODE));
+
+    if let Some(api_key) = provider
+        .settings_config
+        .get("api_key")
+        .or_else(|| provider.settings_config.get("apiKey"))
+        .and_then(|value| value.as_str())
+    {
+        form.hermes_api_key.set(api_key);
+    }
+
+    if let Some(base_url) = provider
+        .settings_config
+        .get("base_url")
+        .or_else(|| provider.settings_config.get("baseUrl"))
+        .or_else(|| provider.settings_config.get("baseURL"))
+        .or_else(|| provider.settings_config.get("endpoint"))
+        .and_then(|value| value.as_str())
+    {
+        form.hermes_base_url.set(base_url);
+    }
+
+    if let Some(model) = provider
+        .settings_config
+        .get("model")
+        .and_then(|value| value.as_str())
+    {
+        form.hermes_model.set(model);
+    }
+
+    form.hermes_models = provider
+        .settings_config
+        .get("models")
+        .cloned()
+        .unwrap_or_else(|| Value::Object(serde_json::Map::new()));
+
+    if form.hermes_model.is_blank() {
+        match &form.hermes_models {
+            Value::Object(models) => {
+                if let Some(model_id) = models.keys().next() {
+                    form.hermes_model.set(model_id);
+                }
+            }
+            Value::Array(models) => {
+                if let Some(model_id) = models
+                    .first()
+                    .and_then(|model| model.get("id"))
+                    .and_then(|value| value.as_str())
+                {
+                    form.hermes_model.set(model_id);
+                }
+            }
+            _ => {}
         }
     }
 }

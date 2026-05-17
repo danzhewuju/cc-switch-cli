@@ -773,6 +773,7 @@ pub(super) fn render_mcp_apps_picker_overlay(
             crate::app_config::AppType::Codex,
             crate::app_config::AppType::Gemini,
             crate::app_config::AppType::OpenCode,
+            crate::app_config::AppType::Hermes,
         ],
     );
 }
@@ -848,6 +849,7 @@ pub(super) fn render_visible_apps_picker_overlay(
             crate::app_config::AppType::Codex,
             crate::app_config::AppType::Gemini,
             crate::app_config::AppType::OpenCode,
+            crate::app_config::AppType::Hermes,
             crate::app_config::AppType::OpenClaw,
         ],
     );
@@ -874,6 +876,7 @@ pub(super) fn render_skills_apps_picker_overlay(
             crate::app_config::AppType::Codex,
             crate::app_config::AppType::Gemini,
             crate::app_config::AppType::OpenCode,
+            crate::app_config::AppType::Hermes,
         ],
     );
 }

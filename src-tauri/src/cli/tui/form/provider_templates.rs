@@ -157,10 +157,17 @@ static PROVIDER_TEMPLATE_DEFS_OPENCODE: [ProviderTemplateDef; 1] = [ProviderTemp
     label: "Custom",
 }];
 
+static PROVIDER_TEMPLATE_DEFS_HERMES: [ProviderTemplateDef; 1] = [ProviderTemplateDef {
+    id: ProviderTemplateId::Custom,
+    label: "Custom",
+}];
+
 static PROVIDER_TEMPLATE_DEFS_OPENCLAW: [ProviderTemplateDef; 1] = [ProviderTemplateDef {
     id: ProviderTemplateId::Custom,
     label: "Custom",
 }];
+
+static SPONSOR_PROVIDER_PRESETS_HERMES: [SponsorProviderPreset; 0] = [];
 
 pub(super) fn provider_builtin_template_defs(app_type: &AppType) -> &'static [ProviderTemplateDef] {
     match app_type {
@@ -168,6 +175,7 @@ pub(super) fn provider_builtin_template_defs(app_type: &AppType) -> &'static [Pr
         AppType::Codex => &PROVIDER_TEMPLATE_DEFS_CODEX,
         AppType::Gemini => &PROVIDER_TEMPLATE_DEFS_GEMINI,
         AppType::OpenCode => &PROVIDER_TEMPLATE_DEFS_OPENCODE,
+        AppType::Hermes => &PROVIDER_TEMPLATE_DEFS_HERMES,
         AppType::OpenClaw => &PROVIDER_TEMPLATE_DEFS_OPENCLAW,
     }
 }
@@ -178,6 +186,7 @@ pub(super) fn provider_sponsor_presets(app_type: &AppType) -> &'static [SponsorP
         AppType::Codex => &SPONSOR_PROVIDER_PRESETS_CODEX,
         AppType::Gemini => &SPONSOR_PROVIDER_PRESETS_GEMINI,
         AppType::OpenCode => &SPONSOR_PROVIDER_PRESETS_OPENCODE,
+        AppType::Hermes => &SPONSOR_PROVIDER_PRESETS_HERMES,
         AppType::OpenClaw => &SPONSOR_PROVIDER_PRESETS_OPENCLAW,
     }
 }
@@ -256,6 +265,11 @@ impl ProviderAddFormState {
                     self.gemini_api_key = defaults.gemini_api_key;
                     self.gemini_base_url = defaults.gemini_base_url;
                     self.gemini_model = defaults.gemini_model;
+                    self.hermes_api_mode = defaults.hermes_api_mode;
+                    self.hermes_api_key = defaults.hermes_api_key;
+                    self.hermes_base_url = defaults.hermes_base_url;
+                    self.hermes_model = defaults.hermes_model;
+                    self.hermes_models = defaults.hermes_models;
                     self.openclaw_user_agent = defaults.openclaw_user_agent;
                     self.openclaw_models = defaults.openclaw_models;
                     self.opencode_npm_package = defaults.opencode_npm_package;
@@ -381,6 +395,7 @@ impl ProviderAddFormState {
                     self.opencode_model_original_id = Some("claude-opus-4.6".to_string());
                 }
             }
+            AppType::Hermes => {}
             AppType::OpenClaw => {
                 if preset.id == "aicodemirror" {
                     self.opencode_api_key.set("");

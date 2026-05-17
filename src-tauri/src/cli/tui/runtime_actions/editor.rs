@@ -244,6 +244,9 @@ pub(super) fn submit(
         } => submit_prompt_create(ctx, id, name, description, content),
         EditorSubmit::PromptEdit { id } => submit_prompt_edit(ctx, id, content),
         EditorSubmit::ProviderFormApplyJson => submit_provider_form_apply_json(ctx, content),
+        EditorSubmit::ProviderFormApplyHermesModels => {
+            submit_provider_form_apply_hermes_models(ctx, content)
+        }
         EditorSubmit::ProviderFormApplyOpenClawModels => {
             submit_provider_form_apply_openclaw_models(ctx, content)
         }
@@ -534,6 +537,17 @@ fn submit_provider_form_apply_json(
             let mut provider_value = form.to_provider_json_value();
             if let Some(obj) = provider_value.as_object_mut() {
                 obj.insert("settingsConfig".to_string(), settings_value.clone());
+                if matches!(form.app_type, AppType::Hermes) {
+                    if let Some(name) = settings_value
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                    {
+                        obj.insert("id".to_string(), json!(name));
+                        obj.insert("name".to_string(), json!(name));
+                    }
+                }
             }
             Some(provider_value)
         }
@@ -600,6 +614,43 @@ fn submit_provider_form_apply_usage_script_code(
         form.usage_query_code = content;
         form.touch_usage_query();
     }
+    ctx.app.editor = None;
+    Ok(())
+}
+
+fn submit_provider_form_apply_hermes_models(
+    ctx: &mut RuntimeActionContext<'_>,
+    content: String,
+) -> Result<(), AppError> {
+    let models_value: Value = match serde_json::from_str(&content) {
+        Ok(value) => value,
+        Err(e) => {
+            ctx.app.push_toast(
+                texts::tui_toast_invalid_json(&e.to_string()),
+                ToastKind::Error,
+            );
+            return Ok(());
+        }
+    };
+
+    if !models_value.is_array() && !models_value.is_object() {
+        ctx.app.push_toast(
+            texts::tui_toast_json_must_be_object_or_array(),
+            ToastKind::Error,
+        );
+        return Ok(());
+    }
+
+    let apply_result = match ctx.app.form.as_mut() {
+        Some(FormState::ProviderAdd(form)) => form.apply_hermes_models_value(models_value),
+        _ => Ok(()),
+    };
+
+    if let Err(err) = apply_result {
+        ctx.app.push_toast(err, ToastKind::Error);
+        return Ok(());
+    }
+
     ctx.app.editor = None;
     Ok(())
 }

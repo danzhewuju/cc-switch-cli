@@ -35,20 +35,24 @@ pub(crate) fn add_form_key_items(
                 ]);
             } else {
                 let enter_action = match selected_field {
-                    Some(ProviderAddField::CodexModel | ProviderAddField::GeminiModel) => {
-                        texts::tui_key_fetch_model()
-                    }
+                    Some(
+                        ProviderAddField::CodexModel
+                        | ProviderAddField::GeminiModel
+                        | ProviderAddField::HermesModel,
+                    ) => texts::tui_key_fetch_model(),
                     Some(
                         ProviderAddField::ClaudeModelConfig
                         | ProviderAddField::CommonSnippet
                         | ProviderAddField::UsageQuery
                         | ProviderAddField::OpenClawModels,
+                        | ProviderAddField::HermesModels,
                     ) => texts::tui_key_open(),
                     Some(
                         ProviderAddField::GeminiAuthType
                         | ProviderAddField::ClaudeHideAttribution
                         | ProviderAddField::OpenClawApiProtocol
-                        | ProviderAddField::OpenClawUserAgent,
+                        | ProviderAddField::OpenClawUserAgent
+                        | ProviderAddField::HermesApiMode,
                     ) => texts::tui_key_toggle(),
                     _ => texts::tui_key_edit_mode(),
                 };

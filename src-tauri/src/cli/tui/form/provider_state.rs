@@ -11,7 +11,7 @@ use super::provider_state_loading::populate_form_from_provider;
 use super::{
     ClaudeApiFormat, CodexPreviewSection, CodexWireApi, FormFocus, FormMode, GeminiAuthType,
     ProviderAddField, ProviderAddFormState, ProviderFormPage, TextInput, UsageQueryField,
-    UsageQueryTemplate, OPENCLAW_DEFAULT_API_PROTOCOL,
+    UsageQueryTemplate, HERMES_DEFAULT_API_MODE,OPENCLAW_DEFAULT_API_PROTOCOL,
 };
 
 impl ProviderAddFormState {
@@ -136,6 +136,11 @@ impl ProviderAddFormState {
             gemini_api_key: TextInput::new(""),
             gemini_base_url: TextInput::new("https://generativelanguage.googleapis.com"),
             gemini_model: TextInput::new(""),
+            hermes_api_mode: HermesApiMode::from_raw(HERMES_DEFAULT_API_MODE),
+            hermes_api_key: TextInput::new(""),
+            hermes_base_url: TextInput::new(""),
+            hermes_model: TextInput::new(""),
+            hermes_models: json!({}),
             openclaw_user_agent: false,
             openclaw_models: Vec::new(),
             usage_query_enabled: false,
@@ -285,7 +290,7 @@ impl ProviderAddFormState {
             ProviderAddField::Notes,
         ];
 
-        if matches!(self.app_type, AppType::OpenClaw) {
+        if matches!(self.app_type, AppType::OpenClaw | AppType::Hermes) {
             fields.insert(0, ProviderAddField::Id);
         }
 
@@ -322,6 +327,13 @@ impl ProviderAddFormState {
                 fields.push(ProviderAddField::OpenCodeModelName);
                 fields.push(ProviderAddField::OpenCodeModelContextLimit);
                 fields.push(ProviderAddField::OpenCodeModelOutputLimit);
+            }
+            AppType::Hermes => {
+                fields.push(ProviderAddField::HermesApiMode);
+                fields.push(ProviderAddField::HermesBaseUrl);
+                fields.push(ProviderAddField::HermesApiKey);
+                fields.push(ProviderAddField::HermesModel);
+                fields.push(ProviderAddField::HermesModels);
             }
             AppType::OpenClaw => {
                 fields.push(ProviderAddField::OpenClawApiProtocol);
@@ -413,6 +425,9 @@ impl ProviderAddFormState {
             ProviderAddField::Name => Some(&self.name),
             ProviderAddField::WebsiteUrl => Some(&self.website_url),
             ProviderAddField::Notes => Some(&self.notes),
+            ProviderAddField::HermesBaseUrl => Some(&self.hermes_base_url),
+            ProviderAddField::HermesApiKey => Some(&self.hermes_api_key),
+            ProviderAddField::HermesModel => Some(&self.hermes_model),
             ProviderAddField::ClaudeBaseUrl => Some(&self.claude_base_url),
             ProviderAddField::ClaudeApiKey => Some(&self.claude_api_key),
             ProviderAddField::CodexBaseUrl => Some(&self.codex_base_url),
@@ -435,6 +450,8 @@ impl ProviderAddFormState {
             | ProviderAddField::ClaudeModelConfig
             | ProviderAddField::ClaudeHideAttribution
             | ProviderAddField::GeminiAuthType
+            | ProviderAddField::HermesApiMode
+            | ProviderAddField::HermesModels
             | ProviderAddField::OpenClawApiProtocol
             | ProviderAddField::OpenClawUserAgent
             | ProviderAddField::OpenClawModels
@@ -452,6 +469,9 @@ impl ProviderAddFormState {
             ProviderAddField::Name => Some(&mut self.name),
             ProviderAddField::WebsiteUrl => Some(&mut self.website_url),
             ProviderAddField::Notes => Some(&mut self.notes),
+            ProviderAddField::HermesBaseUrl => Some(&mut self.hermes_base_url),
+            ProviderAddField::HermesApiKey => Some(&mut self.hermes_api_key),
+            ProviderAddField::HermesModel => Some(&mut self.hermes_model),
             ProviderAddField::ClaudeBaseUrl => Some(&mut self.claude_base_url),
             ProviderAddField::ClaudeApiKey => Some(&mut self.claude_api_key),
             ProviderAddField::CodexBaseUrl => Some(&mut self.codex_base_url),
@@ -478,6 +498,8 @@ impl ProviderAddFormState {
             | ProviderAddField::ClaudeModelConfig
             | ProviderAddField::ClaudeHideAttribution
             | ProviderAddField::GeminiAuthType
+            | ProviderAddField::HermesApiMode
+            | ProviderAddField::HermesModels
             | ProviderAddField::OpenClawApiProtocol
             | ProviderAddField::OpenClawUserAgent
             | ProviderAddField::OpenClawModels
@@ -817,6 +839,20 @@ impl ProviderAddFormState {
         self.claude_hide_attribution_touched = true;
     }
 
+    pub(crate) fn hermes_provider_name(&self) -> String {
+        let id = self.id.value.trim();
+        if !id.is_empty() {
+            return id.to_string();
+        }
+
+        let name = self.name.value.trim();
+        if !name.is_empty() {
+            return name.to_string();
+        }
+
+        String::new()
+    }
+
     pub fn is_claude_official_provider(&self) -> bool {
         if !matches!(self.app_type, AppType::Claude) {
             return false;
@@ -1053,6 +1089,56 @@ impl ProviderAddFormState {
         } else {
             Some(model_id.to_string())
         }
+    }
+
+    pub(crate) fn hermes_models_summary(&self) -> String {
+        let total = match &self.hermes_models {
+            Value::Array(items) => items.len(),
+            Value::Object(items) => items.len(),
+            _ => 0,
+        };
+        texts::tui_hermes_models_summary(total)
+    }
+
+    pub(crate) fn hermes_models_editor_text(&self) -> String {
+        serde_json::to_string_pretty(&self.hermes_models).unwrap_or_else(|_| "{}".to_string())
+    }
+
+    pub(crate) fn ensure_hermes_model_entry(&mut self, selected_model: &str) {
+        let selected_model = selected_model.trim();
+        if selected_model.is_empty() {
+            return;
+        }
+
+        if !self.hermes_models.is_object() {
+            self.hermes_models = json!({});
+        }
+
+        if let Some(models) = self.hermes_models.as_object_mut() {
+            models
+                .entry(selected_model.to_string())
+                .or_insert_with(|| json!({ "name": selected_model }));
+        }
+    }
+
+    pub fn apply_hermes_models_value(&mut self, models_value: Value) -> Result<(), String> {
+        if !matches!(self.app_type, AppType::Hermes) {
+            return Ok(());
+        }
+        if !models_value.is_array() && !models_value.is_object() {
+            return Err(texts::tui_toast_json_must_be_object_or_array().to_string());
+        }
+
+        let mut provider_value = self.to_provider_json_value();
+        let settings_value = provider_value
+            .as_object_mut()
+            .and_then(|obj| obj.get_mut("settingsConfig"))
+            .ok_or_else(|| texts::tui_toast_json_must_be_object().to_string())?;
+        let settings_obj = settings_value
+            .as_object_mut()
+            .ok_or_else(|| texts::tui_toast_json_must_be_object().to_string())?;
+        settings_obj.insert("models".to_string(), models_value);
+        self.apply_provider_json_value_to_fields(provider_value)
     }
 
     pub(crate) fn openclaw_models_summary(&self) -> String {

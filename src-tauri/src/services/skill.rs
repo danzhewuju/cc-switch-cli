@@ -382,7 +382,7 @@ pub struct SkillService {
 
 impl SkillService {
     fn app_supports_skills(app: &AppType) -> bool {
-        !matches!(app, AppType::OpenClaw)
+        !matches!(app, AppType::Hermes | AppType::OpenClaw)
     }
 
     fn supported_skill_apps() -> impl Iterator<Item = AppType> {
@@ -444,6 +444,11 @@ impl SkillService {
                     return Ok(custom.join("skills"));
                 }
             }
+            AppType::Hermes => {
+                if let Some(custom) = crate::settings::get_hermes_override_dir() {
+                    return Ok(custom.join("skills"));
+                }
+            }
             AppType::OpenClaw => {
                 if let Some(custom) = crate::settings::get_openclaw_override_dir() {
                     return Ok(custom.join("skills"));
@@ -464,6 +469,7 @@ impl SkillService {
             AppType::Codex => home.join(".codex").join("skills"),
             AppType::Gemini => home.join(".gemini").join("skills"),
             AppType::OpenCode => home.join(".config").join("opencode").join("skills"),
+            AppType::Hermes => home.join(".hermes").join("skills"),
             AppType::OpenClaw => home.join(".openclaw").join("skills"),
         })
     }

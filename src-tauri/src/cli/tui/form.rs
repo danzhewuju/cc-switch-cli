@@ -37,6 +37,7 @@ pub const OPENCLAW_API_PROTOCOLS: [&str; 5] = [
     "google-generative-ai",
     "bedrock-converse-stream",
 ];
+pub const HERMES_DEFAULT_API_MODE: &str = "chat_completions";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GeminiAuthType {
@@ -73,6 +74,49 @@ pub enum ClaudeApiFormat {
     Anthropic,
     OpenAiChat,
     OpenAiResponses,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HermesApiMode {
+    ChatCompletions,
+    CodexResponses,
+    AnthropicMessages,
+    BedrockConverse,
+}
+
+impl HermesApiMode {
+    pub const ALL: [Self; 4] = [
+        HermesApiMode::ChatCompletions,
+        HermesApiMode::CodexResponses,
+        HermesApiMode::AnthropicMessages,
+        HermesApiMode::BedrockConverse,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            HermesApiMode::ChatCompletions => "chat_completions",
+            HermesApiMode::CodexResponses => "codex_responses",
+            HermesApiMode::AnthropicMessages => "anthropic_messages",
+            HermesApiMode::BedrockConverse => "bedrock_converse",
+        }
+    }
+
+    pub fn from_raw(value: &str) -> Self {
+        match value {
+            "chat_completions" | "openai_chat" | "openai_chat_completions" => {
+                HermesApiMode::ChatCompletions
+            }
+            "codex_responses" | "openai_responses" => HermesApiMode::CodexResponses,
+            "anthropic_messages" => HermesApiMode::AnthropicMessages,
+            "bedrock_converse" => HermesApiMode::BedrockConverse,
+            _ => HermesApiMode::ChatCompletions,
+        }
+    }
+
+    pub fn next(self) -> Self {
+        let index = Self::ALL.iter().position(|item| *item == self).unwrap_or(0);
+        Self::ALL[(index + 1) % Self::ALL.len()]
+    }
 }
 
 impl ClaudeApiFormat {
@@ -159,6 +203,11 @@ pub enum ProviderAddField {
     Name,
     WebsiteUrl,
     Notes,
+    HermesApiMode,
+    HermesBaseUrl,
+    HermesApiKey,
+    HermesModel,
+    HermesModels,
     ClaudeBaseUrl,
     ClaudeApiFormat,
     ClaudeApiKey,
@@ -304,6 +353,12 @@ pub struct ProviderAddFormState {
     pub gemini_api_key: TextInput,
     pub gemini_base_url: TextInput,
     pub gemini_model: TextInput,
+
+    pub hermes_api_mode: HermesApiMode,
+    pub hermes_api_key: TextInput,
+    pub hermes_base_url: TextInput,
+    pub hermes_model: TextInput,
+    pub hermes_models: Value,
 
     pub openclaw_user_agent: bool,
     pub openclaw_models: Vec<Value>,

@@ -66,7 +66,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(3);
+                *selected = (*selected + 1).min(5);
                 Action::None
             }
             KeyCode::Enter => {
@@ -321,7 +321,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(4);
+                *selected = (*selected + 1).min(5);
                 Action::None
             }
             KeyCode::Enter => {
@@ -419,6 +419,9 @@ impl App {
                                 provider.mark_claude_model_config_touched();
                             }
                         }
+                    } else if field == ProviderAddField::HermesModel {
+                        provider.hermes_model.set(selected_model.clone());
+                        provider.ensure_hermes_model_entry(&selected_model);
                     } else if let Some(input_field) = provider.input_mut(field) {
                         input_field.set(selected_model);
                     }
@@ -574,7 +577,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(3);
+                *selected = (*selected + 1).min(app_type_picker_index(&AppType::OpenClaw));
                 Action::None
             }
             KeyCode::Char(' ') => {
@@ -655,7 +658,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(4);
+                *selected = (*selected + 1).min(app_type_picker_index(&AppType::OpenClaw));
                 Action::None
             }
             KeyCode::Char(' ') => {

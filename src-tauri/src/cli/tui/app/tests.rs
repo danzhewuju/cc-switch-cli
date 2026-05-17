@@ -583,7 +583,7 @@ mod tests {
         assert!(matches!(action, Action::None));
         assert!(matches!(
             &app.overlay,
-            Overlay::SkillsAppsPicker { selected, .. } if *selected == 3
+            Overlay::SkillsAppsPicker { selected, .. } if *selected == 4
         ));
 
         let action = app.on_key(key(KeyCode::Char(' ')), &data);
@@ -591,11 +591,12 @@ mod tests {
         assert!(matches!(
             &app.overlay,
             Overlay::SkillsAppsPicker { selected, apps, .. }
-                if *selected == 3
+                if *selected == 4
                     && !apps.claude
                     && !apps.codex
                     && !apps.gemini
-                    && apps.opencode
+                    && !apps.opencode
+                    && apps.hermes
         ));
     }
 
@@ -737,6 +738,7 @@ mod tests {
             codex: true,
             gemini: true,
             opencode: true,
+            hermes: false,
             openclaw: true,
         })
         .expect("save visible apps");
@@ -761,6 +763,7 @@ mod tests {
             codex: true,
             gemini: true,
             opencode: true,
+            hermes: false,
             openclaw: true,
         })
         .expect("save visible apps");
@@ -801,6 +804,7 @@ mod tests {
             codex: false,
             gemini: false,
             opencode: true,
+            hermes: false,
             openclaw: true,
         })
         .expect("save visible apps");
@@ -823,6 +827,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         })
         .expect("save visible apps");
@@ -849,6 +854,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: true,
         })
         .expect("save visible apps");
@@ -871,6 +877,7 @@ mod tests {
             codex: true,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         })
         .expect("save visible apps");
@@ -2511,7 +2518,7 @@ mod tests {
         assert!(matches!(action, Action::None));
         assert!(matches!(
             &app.overlay,
-            Overlay::McpAppsPicker { selected, .. } if *selected == 3
+            Overlay::McpAppsPicker { selected, .. } if *selected == 4
         ));
 
         let action = app.on_key(key(KeyCode::Char(' ')), &data);
@@ -2519,11 +2526,12 @@ mod tests {
         assert!(matches!(
             &app.overlay,
             Overlay::McpAppsPicker { selected, apps, .. }
-                if *selected == 3
+                if *selected == 4
                     && !apps.claude
                     && !apps.codex
                     && !apps.gemini
-                    && apps.opencode
+                    && !apps.opencode
+                    && apps.hermes
         ));
     }
 
@@ -8292,6 +8300,7 @@ mod tests {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         })
         .expect("save visible apps");

@@ -7,7 +7,7 @@ use super::codex_config::{
 };
 use super::{
     ClaudeApiFormat, GeminiAuthType, ProviderAddFormState, UsageQueryTemplate,
-    OPENCLAW_DEFAULT_API_PROTOCOL, OPENCLAW_DEFAULT_USER_AGENT,
+    HERMES_DEFAULT_API_MODE, OPENCLAW_DEFAULT_API_PROTOCOL, OPENCLAW_DEFAULT_USER_AGENT,
 };
 
 impl ProviderAddFormState {
@@ -285,6 +285,51 @@ impl ProviderAddFormState {
 
                 if !models_obj.is_empty() {
                     settings_obj.insert("models".to_string(), models_value);
+                }
+            }
+            AppType::Hermes => {
+                settings_obj.remove("apiKey");
+                settings_obj.remove("baseUrl");
+                settings_obj.remove("baseURL");
+                settings_obj.remove("endpoint");
+                settings_obj.remove("apiMode");
+
+                let provider_name = self.hermes_provider_name();
+                if provider_name.is_empty() {
+                    settings_obj.remove("name");
+                } else {
+                    settings_obj.insert("name".to_string(), json!(provider_name));
+                }
+
+                let source = settings_obj
+                    .get("_cc_source")
+                    .and_then(|value| value.as_str())
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or("custom_providers");
+                settings_obj.insert("_cc_source".to_string(), json!(source));
+
+                settings_obj.insert(
+                    "api_mode".to_string(),
+                    json!(if self.hermes_api_mode.as_str().trim().is_empty() {
+                        HERMES_DEFAULT_API_MODE
+                    } else {
+                        self.hermes_api_mode.as_str()
+                    }),
+                );
+
+                set_or_remove_trimmed(settings_obj, "api_key", &self.hermes_api_key.value);
+                set_or_remove_trimmed(settings_obj, "base_url", &self.hermes_base_url.value);
+                set_or_remove_trimmed(settings_obj, "model", &self.hermes_model.value);
+
+                let has_models = match &self.hermes_models {
+                    Value::Object(map) => !map.is_empty(),
+                    Value::Array(items) => !items.is_empty(),
+                    _ => false,
+                };
+                if has_models {
+                    settings_obj.insert("models".to_string(), self.hermes_models.clone());
+                } else {
+                    settings_obj.remove("models");
                 }
             }
             AppType::OpenClaw => {
@@ -656,7 +701,7 @@ pub(crate) fn strip_common_config_from_settings(
             )
             .map_err(|e| e.to_string())?;
         }
-        AppType::OpenCode | AppType::OpenClaw => {}
+        AppType::OpenCode | AppType::Hermes | AppType::OpenClaw => {}
         AppType::Codex => {
             *settings_value = ProviderService::remove_common_config_from_settings_for_preview(
                 app_type,

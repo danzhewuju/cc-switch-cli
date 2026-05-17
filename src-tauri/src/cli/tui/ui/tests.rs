@@ -622,6 +622,7 @@ fn installed_skill(directory: &str, name: &str) -> InstalledSkill {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
         },
         installed_at: 1,
     }
@@ -845,6 +846,7 @@ fn header_only_renders_selected_visible_apps() {
         codex: true,
         gemini: false,
         opencode: false,
+        hermes: false,
         openclaw: true,
     })
     .expect("save visible apps");
@@ -873,6 +875,7 @@ fn header_keeps_all_app_tabs_visible_with_proxy_chip() {
         codex: true,
         gemini: true,
         opencode: true,
+        hermes: false,
         openclaw: true,
     })
     .expect("save visible apps");
@@ -901,6 +904,7 @@ fn settings_page_shows_visible_apps_row_value() {
         codex: false,
         gemini: true,
         opencode: false,
+        hermes: false,
         openclaw: true,
     })
     .expect("save visible apps");
@@ -981,6 +985,7 @@ fn zero_selection_warning_toast_renders_after_picker_rejection() {
             codex: false,
             gemini: false,
             opencode: false,
+            hermes: false,
             openclaw: false,
         },
     };
@@ -1093,6 +1098,8 @@ fn openclaw_agents_picker_overlay_marks_current_option_when_editing_existing_fal
 fn header_centers_tabs_when_room_allows() {
     let _lock = lock_env();
     let _no_color = EnvGuard::remove("NO_COLOR");
+    let temp_home = TempDir::new().expect("create temp home");
+    let _home = SettingsEnvGuard::set_home(temp_home.path());
 
     let app = App::new(Some(AppType::Claude));
     let buf = render_with_size(&app, &minimal_data(&app.app_type), 140, 40);
@@ -1634,6 +1641,7 @@ fn home_connection_card_labels_mcp_and_skills_with_active_counts() {
                 codex: false,
                 gemini: false,
                 opencode: false,
+                hermes: false,
             },
             installed_at: 0,
         },
@@ -2444,6 +2452,7 @@ fn skills_page_shows_opencode_summary() {
         codex: false,
         gemini: false,
         opencode: true,
+        hermes: false,
     };
     data.skills.installed = vec![skill];
 
@@ -2471,6 +2480,7 @@ fn skill_detail_page_shows_opencode_enabled_state() {
         codex: false,
         gemini: false,
         opencode: true,
+        hermes: false,
     };
     data.skills.installed = vec![skill];
 

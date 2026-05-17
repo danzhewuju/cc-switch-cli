@@ -266,6 +266,7 @@ impl ProxySnapshot {
             AppType::Codex => Some(self.codex_takeover),
             AppType::Gemini => Some(self.gemini_takeover),
             AppType::OpenCode => None,
+            AppType::Hermes => None,
             AppType::OpenClaw => None,
         }
     }
@@ -685,6 +686,13 @@ fn extract_api_url(settings_config: &Value, app_type: &AppType) -> Option<String
             .get("baseURL")?
             .as_str()
             .map(|s| s.to_string()),
+        AppType::Hermes => settings_config
+            .get("base_url")
+            .or_else(|| settings_config.get("baseUrl"))
+            .or_else(|| settings_config.get("baseURL"))
+            .or_else(|| settings_config.get("endpoint"))?
+            .as_str()
+            .map(|s| s.to_string()),
         AppType::OpenClaw => settings_config
             .get("baseUrl")
             .or_else(|| settings_config.get("base_url"))?
@@ -699,6 +707,25 @@ fn extract_primary_model_id(
     openclaw_live_provider: Option<&Value>,
 ) -> Option<String> {
     match app_type {
+        AppType::Hermes => settings_config
+            .get("model")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .or_else(|| {
+                settings_config
+                    .get("models")
+                    .and_then(Value::as_object)
+                    .and_then(|models| models.keys().next().cloned())
+            })
+            .or_else(|| {
+                settings_config
+                    .get("models")
+                    .and_then(Value::as_array)
+                    .and_then(|models| models.first())
+                    .and_then(|model| model.get("id"))
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            }),
         AppType::OpenClaw => match openclaw_live_provider {
             Some(live_provider) => openclaw_primary_model_id(live_provider),
             None => openclaw_primary_model_id(settings_config),

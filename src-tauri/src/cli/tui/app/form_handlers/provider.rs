@@ -251,6 +251,13 @@ impl App {
                 };
                 Action::None
             }
+            ProviderAddField::HermesApiMode => {
+                let Some(FormState::ProviderAdd(provider)) = self.form.as_mut() else {
+                    return Action::None;
+                };
+                provider.hermes_api_mode = provider.hermes_api_mode.next();
+                Action::None
+            }
             ProviderAddField::OpenClawApiProtocol => {
                 let Some(FormState::ProviderAdd(provider)) = self.form.as_mut() else {
                     return Action::None;
@@ -300,6 +307,23 @@ impl App {
                 }
                 Action::None
             }
+            ProviderAddField::HermesModels => {
+                if matches!(key.code, KeyCode::Enter) {
+                    let Some(FormState::ProviderAdd(provider)) = self.form.as_ref() else {
+                        return Action::None;
+                    };
+                    self.open_editor(
+                        texts::tui_hermes_models_editor_title(),
+                        EditorKind::Json,
+                        provider.hermes_models_editor_text(),
+                        EditorSubmit::ProviderFormApplyHermesModels,
+                    );
+                    if let Some(editor) = self.editor.as_mut() {
+                        editor.mode = EditorMode::Edit;
+                    }
+                }
+                Action::None
+            }
             ProviderAddField::CommonSnippet => {
                 if matches!(key.code, KeyCode::Enter) {
                     let Some(FormState::ProviderAdd(provider)) = self.form.as_ref() else {
@@ -322,7 +346,8 @@ impl App {
             }
             ProviderAddField::CodexModel
             | ProviderAddField::GeminiModel
-            | ProviderAddField::OpenCodeModelId => {
+            | ProviderAddField::OpenCodeModelId
+            | ProviderAddField::HermesModel => {
                 self.handle_provider_model_field_activate(selected, key)
             }
             _ => {
@@ -557,12 +582,15 @@ impl App {
                     (!provider.opencode_api_key.value.trim().is_empty())
                         .then(|| provider.opencode_api_key.value.clone())
                 }
+                ProviderAddField::HermesModel => (!provider.hermes_api_key.value.trim().is_empty())
+                    .then(|| provider.hermes_api_key.value.clone()),
                 _ => None,
             };
             let base_url = match selected {
                 ProviderAddField::CodexModel => provider.codex_base_url.value.clone(),
                 ProviderAddField::GeminiModel => provider.gemini_base_url.value.clone(),
                 ProviderAddField::OpenCodeModelId => provider.opencode_base_url.value.clone(),
+                ProviderAddField::HermesModel => provider.hermes_base_url.value.clone(),
                 _ => String::new(),
             };
             Action::ProviderModelFetch {
