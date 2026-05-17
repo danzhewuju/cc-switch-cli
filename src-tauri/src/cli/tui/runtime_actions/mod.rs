@@ -213,6 +213,10 @@ pub(crate) fn handle_action(
             editor::extract_common_snippet_into_editor(&mut ctx, app_type)
         }
         Action::EditorSubmit { submit, content } => editor::submit(&mut ctx, submit, content),
+        Action::HermesMemoryOpen { kind } => config::open_hermes_memory(&mut ctx, kind),
+        Action::HermesMemorySetEnabled { kind, enabled } => {
+            config::set_hermes_memory_enabled(&mut ctx, kind, enabled)
+        }
         Action::ProviderSwitch { id } => providers::switch(&mut ctx, id),
         Action::ProviderRemoveFromConfig { id } => providers::remove_from_config(&mut ctx, id),
         Action::ProviderSetDefaultModel {

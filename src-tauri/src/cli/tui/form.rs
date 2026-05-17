@@ -208,6 +208,7 @@ pub enum ProviderAddField {
     HermesApiKey,
     HermesModel,
     HermesModels,
+    HermesRateLimitDelay,
     ClaudeBaseUrl,
     ClaudeApiFormat,
     ClaudeApiKey,
@@ -283,6 +284,7 @@ pub enum McpAddField {
     AppCodex,
     AppGemini,
     AppOpenCode,
+    AppHermes,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -358,7 +360,12 @@ pub struct ProviderAddFormState {
     pub hermes_api_key: TextInput,
     pub hermes_base_url: TextInput,
     pub hermes_model: TextInput,
-    pub hermes_models: Value,
+    /// Hermes model list, stored as an array-of-objects:
+    /// `[{ id, name, context_length, ... }]` (matches upstream
+    /// `HermesFormFields`). On YAML write, `hermes_config`'s
+    /// `normalize_provider_models_for_write` converts this to a dict.
+    pub hermes_models: Vec<Value>,
+    pub hermes_rate_limit_delay: TextInput,
 
     pub openclaw_user_agent: bool,
     pub openclaw_models: Vec<Value>,

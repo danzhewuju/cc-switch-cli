@@ -321,15 +321,49 @@ impl ProviderAddFormState {
                 set_or_remove_trimmed(settings_obj, "base_url", &self.hermes_base_url.value);
                 set_or_remove_trimmed(settings_obj, "model", &self.hermes_model.value);
 
-                let has_models = match &self.hermes_models {
-                    Value::Object(map) => !map.is_empty(),
-                    Value::Array(items) => !items.is_empty(),
-                    _ => false,
-                };
-                if has_models {
-                    settings_obj.insert("models".to_string(), self.hermes_models.clone());
+                // Always write `settings_config.models` as an
+                // array-of-objects (`hermes_config::set_provider` converts
+                // it to a dict before writing YAML). Skip placeholder
+                // entries whose `id` is blank.
+                let normalized_models: Vec<Value> = self
+                    .hermes_models
+                    .iter()
+                    .filter(|item| {
+                        item.get("id")
+                            .and_then(Value::as_str)
+                            .map(|s| !s.trim().is_empty())
+                            .unwrap_or(false)
+                    })
+                    .cloned()
+                    .collect();
+
+                if !normalized_models.is_empty() {
+                    settings_obj.insert("models".to_string(), Value::Array(normalized_models));
                 } else {
                     settings_obj.remove("models");
+                }
+
+                // 供应商级速率限制（单位：秒）。空串或非法数字时移除字段。
+                let raw_delay = self.hermes_rate_limit_delay.value.trim();
+                if raw_delay.is_empty() {
+                    settings_obj.remove("rate_limit_delay");
+                } else {
+                    match raw_delay.parse::<f64>() {
+                        Ok(value) if value.is_finite() && value >= 0.0 => {
+                            settings_obj.insert(
+                                "rate_limit_delay".to_string(),
+                                serde_json::Number::from_f64(value)
+                                    .map(Value::Number)
+                                    .unwrap_or_else(|| json!(raw_delay)),
+                            );
+                        }
+                        _ => {
+                            // Fall back to writing the raw string so user input
+                            // round-trips and an obvious error surfaces in Hermes
+                            // rather than being silently dropped.
+                            settings_obj.insert("rate_limit_delay".to_string(), json!(raw_delay));
+                        }
+                    }
                 }
             }
             AppType::OpenClaw => {

@@ -44,7 +44,7 @@ pub(crate) fn add_form_key_items(
                         ProviderAddField::ClaudeModelConfig
                         | ProviderAddField::CommonSnippet
                         | ProviderAddField::UsageQuery
-                        | ProviderAddField::OpenClawModels,
+                        | ProviderAddField::OpenClawModels
                         | ProviderAddField::HermesModels,
                     ) => texts::tui_key_open(),
                     Some(

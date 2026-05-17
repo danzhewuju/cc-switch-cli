@@ -921,7 +921,7 @@ impl ProviderService {
             }
             AppType::Gemini => live_settings.get("env") != provider_settings.get("env"),
             AppType::Claude => live_settings != provider_settings,
-            AppType::OpenCode | AppType::OpenClaw => false,
+            AppType::OpenCode | AppType::Hermes | AppType::OpenClaw => false,
         }
     }
 
@@ -1071,6 +1071,7 @@ impl ProviderService {
             AppType::Codex => Self::extract_codex_common_config(settings_config),
             AppType::Gemini => Self::extract_gemini_common_config(settings_config),
             AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
+            AppType::Hermes => Self::extract_opencode_common_config(settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(settings_config),
         }
     }

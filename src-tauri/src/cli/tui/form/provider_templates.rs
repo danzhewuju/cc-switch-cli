@@ -270,6 +270,7 @@ impl ProviderAddFormState {
                     self.hermes_base_url = defaults.hermes_base_url;
                     self.hermes_model = defaults.hermes_model;
                     self.hermes_models = defaults.hermes_models;
+                    self.hermes_rate_limit_delay = defaults.hermes_rate_limit_delay;
                     self.openclaw_user_agent = defaults.openclaw_user_agent;
                     self.openclaw_models = defaults.openclaw_models;
                     self.opencode_npm_package = defaults.opencode_npm_package;

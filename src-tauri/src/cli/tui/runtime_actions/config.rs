@@ -2,10 +2,11 @@ use crate::app_config::AppType;
 use crate::cli::i18n::texts;
 use crate::commands::workspace;
 use crate::error::AppError;
-use crate::services::ConfigService;
+use crate::hermes_config::{read_memory, set_memory_enabled, MemoryKind};
+use crate::services::{ConfigService, ProviderService};
 use crate::settings::set_webdav_sync_settings;
 
-use super::super::app::{LoadingKind, Overlay, TextViewState, ToastKind};
+use super::super::app::{EditorKind, EditorSubmit, LoadingKind, Overlay, TextViewState, ToastKind};
 use super::super::data::{load_state, UiData};
 use super::super::runtime_systems::{WebDavReq, WebDavReqKind};
 use super::helpers::{
@@ -147,6 +148,105 @@ pub(super) fn validate(ctx: &mut RuntimeActionContext<'_>) -> Result<(), AppErro
 
 pub(super) fn open_proxy_help(ctx: &mut RuntimeActionContext<'_>) -> Result<(), AppError> {
     open_proxy_help_overlay(ctx.app, ctx.data)
+}
+
+pub(super) fn open_hermes_memory(
+    ctx: &mut RuntimeActionContext<'_>,
+    kind: MemoryKind,
+) -> Result<(), AppError> {
+    let content = match kind {
+        MemoryKind::Memory => {
+            if ctx.data.config.hermes_memory.memory_content.is_empty() {
+                read_memory(kind)?
+            } else {
+                ctx.data.config.hermes_memory.memory_content.clone()
+            }
+        }
+        MemoryKind::User => {
+            if ctx.data.config.hermes_memory.user_content.is_empty() {
+                read_memory(kind)?
+            } else {
+                ctx.data.config.hermes_memory.user_content.clone()
+            }
+        }
+    };
+    ctx.app.open_editor(
+        hermes_memory_editor_title(kind),
+        EditorKind::Plain,
+        content,
+        EditorSubmit::HermesMemory { kind },
+    );
+    Ok(())
+}
+
+pub(super) fn set_hermes_memory_enabled(
+    ctx: &mut RuntimeActionContext<'_>,
+    kind: MemoryKind,
+    enabled: bool,
+) -> Result<(), AppError> {
+    set_memory_enabled(kind, enabled)?;
+    match kind {
+        MemoryKind::Memory => ctx.data.config.hermes_memory.memory_enabled = enabled,
+        MemoryKind::User => ctx.data.config.hermes_memory.user_enabled = enabled,
+    }
+    ctx.app.push_toast(
+        if enabled {
+            crate::t!("Hermes memory enabled", "Hermes 记忆已启用")
+        } else {
+            crate::t!("Hermes memory disabled", "Hermes 记忆已禁用")
+        },
+        ToastKind::Success,
+    );
+    Ok(())
+}
+
+pub(super) fn hermes_memory_editor_title(kind: MemoryKind) -> String {
+    match kind {
+        MemoryKind::Memory => crate::t!("Agent Memory (MEMORY.md)", "Agent Memory (MEMORY.md)"),
+        MemoryKind::User => crate::t!("User Profile (USER.md)", "User Profile (USER.md)"),
+    }
+    .to_string()
+}
+
+pub(super) fn clear_common_snippet(
+    ctx: &mut RuntimeActionContext<'_>,
+    app_type: AppType,
+) -> Result<(), AppError> {
+    let state = load_state()?;
+    ProviderService::clear_common_config_snippet(&state, app_type)?;
+
+    ctx.app
+        .push_toast(texts::common_config_snippet_cleared(), ToastKind::Success);
+    *ctx.data = UiData::load(&ctx.app.app_type)?;
+    Ok(())
+}
+
+pub(super) fn apply_common_snippet(
+    ctx: &mut RuntimeActionContext<'_>,
+    app_type: AppType,
+) -> Result<(), AppError> {
+    if app_type.is_additive_mode() {
+        ctx.app.push_toast(
+            texts::common_config_snippet_apply_not_needed(),
+            ToastKind::Info,
+        );
+        return Ok(());
+    }
+
+    let state = load_state()?;
+    let current_id = ProviderService::current(&state, app_type.clone())?;
+    if current_id.trim().is_empty() {
+        ctx.app.push_toast(
+            texts::common_config_snippet_no_current_provider(),
+            ToastKind::Info,
+        );
+        return Ok(());
+    }
+    ProviderService::switch(&state, app_type.clone(), &current_id)?;
+    ctx.app
+        .push_toast(texts::common_config_snippet_applied(), ToastKind::Success);
+    *ctx.data = UiData::load(&ctx.app.app_type)?;
+    Ok(())
 }
 
 pub(super) fn webdav_check_connection(ctx: &mut RuntimeActionContext<'_>) -> Result<(), AppError> {

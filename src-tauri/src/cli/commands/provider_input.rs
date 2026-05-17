@@ -44,7 +44,7 @@ pub fn common_snippet_has_effective_config(
             .ok()
             .and_then(|value| value.as_object().cloned())
             .is_some_and(|obj| !obj.is_empty()),
-        AppType::OpenCode | AppType::OpenClaw => false,
+        AppType::OpenCode | AppType::Hermes | AppType::OpenClaw => false,
     }
 }
 

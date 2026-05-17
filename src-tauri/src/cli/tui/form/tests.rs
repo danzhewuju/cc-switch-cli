@@ -1176,6 +1176,7 @@ fn mcp_add_form_builds_server_and_apps() {
     form.apps.claude = true;
     form.apps.codex = false;
     form.apps.gemini = true;
+    form.apps.hermes = true;
 
     let server = form.to_mcp_server_json_value();
     assert_eq!(server["id"], "m1");
@@ -1187,6 +1188,7 @@ fn mcp_add_form_builds_server_and_apps() {
     assert_eq!(server["apps"]["codex"], false);
     assert_eq!(server["apps"]["gemini"], true);
     assert_eq!(server["apps"]["opencode"], false);
+    assert_eq!(server["apps"]["hermes"], true);
 }
 
 #[test]
@@ -1358,6 +1360,28 @@ fn mcp_http_form_replaces_stdio_fields_with_url() {
     assert!(!fields.contains(&McpAddField::Args));
     assert!(!fields.contains(&McpAddField::Env));
     assert!(fields.contains(&McpAddField::AppOpenCode));
+    assert!(fields.contains(&McpAddField::AppHermes));
+}
+
+#[test]
+fn mcp_form_includes_hermes_app_after_opencode() {
+    let form = McpAddFormState::new();
+    let fields = form.fields();
+
+    let opencode_idx = fields
+        .iter()
+        .position(|field| *field == McpAddField::AppOpenCode)
+        .expect("MCP AppOpenCode field should exist");
+    let hermes_idx = fields
+        .iter()
+        .position(|field| *field == McpAddField::AppHermes)
+        .expect("MCP AppHermes field should exist");
+
+    assert!(
+        opencode_idx < hermes_idx,
+        "MCP AppHermes field should appear after AppOpenCode"
+    );
+    assert!(form.input(McpAddField::AppHermes).is_none());
 }
 
 #[test]
@@ -3055,4 +3079,121 @@ fn provider_add_form_usage_query_numeric_fields_match_upstream_normalization() {
 
     assert_eq!(script["timeout"], 10);
     assert_eq!(script["autoQueryInterval"], 0);
+}
+
+// ============================================================================
+// Hermes provider form: models list (array-of-objects representation)
+// ============================================================================
+
+#[test]
+fn hermes_apply_models_value_accepts_array_form() {
+    let mut form = ProviderAddFormState::new(AppType::Hermes);
+    let value = json!([
+        { "id": "claude-opus-4-7", "name": "Claude Opus 4.7", "context_length": 200000 },
+        { "id": "claude-sonnet-4", "name": "Claude Sonnet 4" },
+    ]);
+
+    form.apply_hermes_models_value(value).unwrap();
+
+    assert_eq!(form.hermes_models.len(), 2);
+    assert_eq!(form.hermes_models[0]["id"], "claude-opus-4-7");
+    assert_eq!(form.hermes_models[0]["context_length"], 200000);
+    assert_eq!(form.hermes_models[1]["id"], "claude-sonnet-4");
+    // The first id should back-fill the primary model field when blank.
+    assert_eq!(form.hermes_model.value, "claude-opus-4-7");
+}
+
+#[test]
+fn hermes_apply_models_value_accepts_dict_form_and_injects_id() {
+    let mut form = ProviderAddFormState::new(AppType::Hermes);
+    let value = json!({
+        "claude-opus-4-7": { "name": "Claude Opus 4.7", "context_length": 200000 },
+        "claude-sonnet-4": {},
+    });
+
+    form.apply_hermes_models_value(value).unwrap();
+
+    assert_eq!(form.hermes_models.len(), 2);
+    let ids: Vec<&str> = form
+        .hermes_models
+        .iter()
+        .filter_map(|m| m.get("id").and_then(|v| v.as_str()))
+        .collect();
+    assert!(ids.contains(&"claude-opus-4-7"));
+    assert!(ids.contains(&"claude-sonnet-4"));
+}
+
+#[test]
+fn hermes_apply_models_value_drops_blank_id_placeholders() {
+    let mut form = ProviderAddFormState::new(AppType::Hermes);
+    // Editor skeleton: a single blank-id object — should be ignored.
+    let value = json!([
+        { "id": "", "name": "", "context_length": null },
+    ]);
+
+    form.apply_hermes_models_value(value).unwrap();
+
+    assert!(form.hermes_models.is_empty());
+}
+
+#[test]
+fn hermes_merge_fetched_models_skips_existing_and_backfills_primary() {
+    let mut form = ProviderAddFormState::new(AppType::Hermes);
+    form.hermes_models = vec![json!({ "id": "claude-opus-4-7", "name": "Existing" })];
+
+    let fetched = vec![
+        "claude-opus-4-7".to_string(),
+        "claude-sonnet-4".to_string(),
+        " kimi-k2 ".to_string(),
+        "".to_string(),
+    ];
+
+    let (added, total) = form.merge_fetched_hermes_models(&fetched);
+
+    assert_eq!(added, 2);
+    assert_eq!(total, 3);
+    assert_eq!(form.hermes_model.value, "claude-opus-4-7");
+
+    let ids: Vec<&str> = form
+        .hermes_models
+        .iter()
+        .filter_map(|m| m.get("id").and_then(|v| v.as_str()))
+        .collect();
+    assert_eq!(ids, vec!["claude-opus-4-7", "claude-sonnet-4", "kimi-k2"]);
+}
+
+#[test]
+fn hermes_models_round_trip_settings_config_array_form() {
+    let mut form = ProviderAddFormState::new(AppType::Hermes);
+    form.name.set("my-provider");
+    form.hermes_api_key.set("sk-test");
+    form.hermes_base_url.set("https://api.example.com/v1");
+    form.hermes_model.set("claude-opus-4-7");
+    form.hermes_models = vec![
+        json!({ "id": "claude-opus-4-7", "name": "Opus", "context_length": 200000 }),
+        json!({ "id": "claude-sonnet-4", "name": "Sonnet" }),
+    ];
+
+    let provider_value = form.to_provider_json_value();
+    let models = provider_value
+        .get("settingsConfig")
+        .and_then(|sc| sc.get("models"))
+        .and_then(|v| v.as_array())
+        .expect("models should be an array in settings_config");
+    assert_eq!(models.len(), 2);
+    assert_eq!(models[0]["id"], "claude-opus-4-7");
+    assert_eq!(models[0]["context_length"], 200000);
+    assert_eq!(models[1]["id"], "claude-sonnet-4");
+}
+
+#[test]
+fn hermes_models_editor_text_shows_skeleton_when_empty() {
+    let form = ProviderAddFormState::new(AppType::Hermes);
+    let text = form.hermes_models_editor_text();
+    // Skeleton must round-trip through serde_json to a JSON array
+    let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert!(value.is_array());
+    let arr = value.as_array().unwrap();
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0]["id"], "");
 }

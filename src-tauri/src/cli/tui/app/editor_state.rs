@@ -41,6 +41,9 @@ pub enum EditorSubmit {
     OpenClawDailyMemoryFile {
         filename: String,
     },
+    HermesMemory {
+        kind: MemoryKind,
+    },
     ConfigOpenClawEnv,
     ConfigOpenClawTools,
     ConfigOpenClawAgents,

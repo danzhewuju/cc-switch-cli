@@ -321,6 +321,25 @@ impl App {
                     if let Some(editor) = self.editor.as_mut() {
                         editor.mode = EditorMode::Edit;
                     }
+                    return Action::None;
+                }
+                // `f` / `F` triggers "Fetch models from API", equivalent to
+                // upstream `HermesFormFields`' Fetch Models button. All
+                // fetched model ids are merged into `hermes_models`;
+                // existing ids are not duplicated.
+                if matches!(key.code, KeyCode::Char('f') | KeyCode::Char('F')) {
+                    let Some(FormState::ProviderAdd(provider)) = self.form.as_ref() else {
+                        return Action::None;
+                    };
+                    let api_key = (!provider.hermes_api_key.value.trim().is_empty())
+                        .then(|| provider.hermes_api_key.value.clone());
+                    let base_url = provider.hermes_base_url.value.clone();
+                    return Action::ProviderModelFetch {
+                        base_url,
+                        api_key,
+                        field: ProviderAddField::HermesModels,
+                        claude_idx: None,
+                    };
                 }
                 Action::None
             }

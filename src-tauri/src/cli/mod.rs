@@ -65,6 +65,10 @@ pub enum Commands {
     #[command(subcommand)]
     Failover(commands::failover::FailoverCommand),
 
+    /// Hermes-specific commands (memory blobs etc.)
+    #[command(subcommand)]
+    Hermes(commands::hermes::HermesCommand),
+
     /// Start an app with a provider selector without switching the global current provider
     #[cfg(unix)]
     #[command(subcommand)]

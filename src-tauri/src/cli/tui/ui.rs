@@ -35,6 +35,7 @@ mod chrome;
 mod config;
 mod editor;
 mod forms;
+mod hermes_memory;
 mod main_page;
 mod mcp;
 mod overlay;
@@ -54,6 +55,7 @@ use chrome::*;
 use config::*;
 use editor::*;
 use forms::*;
+use hermes_memory::*;
 use main_page::*;
 use mcp::*;
 use overlay::*;
@@ -151,6 +153,13 @@ fn render_content(
         Route::ConfigOpenClawEnv | Route::ConfigOpenClawTools | Route::ConfigOpenClawAgents => {
             if matches!(app.app_type, AppType::OpenClaw) {
                 render_config_openclaw_route(frame, app, data, content_area, theme)
+            } else {
+                render_config(frame, app, data, content_area, theme)
+            }
+        }
+        Route::HermesMemory => {
+            if matches!(app.app_type, AppType::Hermes) {
+                render_hermes_memory(frame, app, data, content_area, theme)
             } else {
                 render_config(frame, app, data, content_area, theme)
             }

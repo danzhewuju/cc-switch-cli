@@ -42,7 +42,7 @@ pub(crate) fn import_mcp_for_current_app(app: &mut App, data: &mut UiData) -> Re
                 AppType::Codex => McpService::import_from_codex(&state),
                 AppType::Gemini => McpService::import_from_gemini(&state),
                 AppType::OpenCode => McpService::import_from_opencode(&state),
-                AppType::Hermes => Ok(0),
+                AppType::Hermes => McpService::import_from_hermes(&state),
                 AppType::OpenClaw => Ok(0),
             }
         },

@@ -4,6 +4,7 @@ mod config_common;
 pub mod config_webdav;
 pub mod env;
 pub mod failover;
+pub mod hermes;
 pub mod internal;
 pub mod mcp;
 pub mod prompts;

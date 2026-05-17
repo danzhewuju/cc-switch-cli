@@ -577,7 +577,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(app_type_picker_index(&AppType::OpenClaw));
+                *selected = (*selected + 1).min(app_type_picker_index(&AppType::Hermes));
                 Action::None
             }
             KeyCode::Char(' ') => {
@@ -710,7 +710,7 @@ impl App {
                 Action::None
             }
             KeyCode::Down => {
-                *selected = (*selected + 1).min(3);
+                *selected = (*selected + 1).min(app_type_picker_index(&AppType::Hermes));
                 Action::None
             }
             KeyCode::Char(' ') => {

@@ -179,7 +179,7 @@ fn canonical_common_snippet(app_type: AppType, raw: &str) -> Result<Option<Strin
         return Ok(None);
     }
 
-    let snippet = match app_type {
+    match app_type {
         AppType::Claude
         | AppType::Gemini
         | AppType::OpenCode
